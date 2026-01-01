@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>無権代理の追認と遡及効</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --success: #10b981;
+            --neutral: #64748b;
+            --background: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #475569;
+        }
+
+        body {
+            font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            background-color: var(--background);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        header p {
+            margin: 8px 0 0 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Content Area */
+        .content {
+            padding: 24px;
+            flex-grow: 1;
+        }
+
+        /* 1. Relationship Diagram */
+        .diagram-section {
+            margin-bottom: 40px;
+            position: relative;
+        }
+        
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--text-main);
+            margin-bottom: 16px;
+            border-left: 4px solid var(--primary);
+            padding-left: 12px;
+        }
+
+        .people-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .person {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 30%;
+            z-index: 2;
+        }
+
+        .icon-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            margin-bottom: 8px;
+            border: 3px solid transparent;
+            transition: all 0.5s ease;
+        }
+
+        .role {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .name {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+        }
+
+        /* Arrows between people */
+        .arrow-line {
+            position: absolute;
+            top: 50px;
+            height: 2px;
+            background: #cbd5e1;
+            transition: all 0.5s ease;
+        }
+        
+        .arrow-left { left: 15%; width: 35%; }
+        .arrow-right { right: 15%; width: 35%; }
+
+        .arrow-label {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            background: #f1f5f9;
+            padding: 4px 8px;
+            border-radius: 12px;
+            white-space: nowrap;
+            color: var(--text-sub);
+            transition: all 0.5s ease;
+        }
+
+        /* 2. Timeline & Interaction */
+        .timeline-section {
+            background: #f1f5f9;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .timeline-track {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            margin-top: 20px;
+        }
+
+        .timeline-line {
+            position: absolute;
+            top: 20px; /* Center of circle (40px/2) */
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #cbd5e1;
+            z-index: 1;
+        }
+        
+        .timeline-line-active {
+            position: absolute;
+            top: 20px;
+            right: 0; /* Start from right (April 10) */
+            width: 0%; /* Initially 0 */
+            height: 4px;
+            background: var(--success);
+            z-index: 2;
+            transition: width 1.5s ease-in-out; /* Retroactive animation */
+        }
+
+        .event {
+            position: relative;
+            z-index: 3;
+            width: 45%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0.6;
+            transition: opacity 0.5s;
+        }
+        
+        .event.active {
+            opacity: 1;
+        }
+
+        .date-circle {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: 4px solid #cbd5e1;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            margin-bottom: 12px;
+            transition: all 0.5s;
+        }
+
+        .event-card {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid #cbd5e1;
+            transition: all 0.5s;
+        }
+
+        .event-card h3 {
+            margin: 0 0 4px 0;
+            font-size: 1rem;
+        }
+        .event-card p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+
+        /* Action Button Area */
+        .action-area {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .ratify-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            font-size: 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);
+            transition: transform 0.2s, background 0.2s;
+            font-weight: bold;
+        }
+
+        .ratify-btn:hover {
+            transform: translateY(-2px);
+            background: #4338ca;
+        }
+        .ratify-btn:active {
+            transform: translateY(0);
+        }
+        
+        .ratify-btn:disabled {
+            background: var(--success);
+            cursor: default;
+            box-shadow: none;
+        }
+
+        /* Retroactive Indicator */
+        .retroactive-label {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fef3c7;
+            color: #d97706;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.5s 1s; /* Delay appearance */
+        }
+
+        /* 3. Requirements Fact Mapping */
+        .requirements-section {
+            display: grid;
+            gap: 12px;
+            opacity: 0.5;
+            pointer-events: none;
+            transition: opacity 1s;
+        }
+
+        .req-item {
+            display: flex;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .req-num {
+            background: #e2e8f0;
+            color: var(--text-sub);
+            width: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .req-content {
+            padding: 10px;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        .req-title {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 4px;
+            color: var(--text-sub);
+        }
+
+        .req-fact {
+            color: var(--text-main);
+        }
+
+        /* State Classes for Animation */
+        .ratified .icon-circle {
+            border-color: var(--success);
+            background: #ecfdf5;
+            color: var(--success);
+        }
+        
+        .ratified .arrow-line {
+            background: var(--success);
+        }
+        
+        .ratified .arrow-label {
+            color: var(--success);
+            background: #ecfdf5;
+        }
+
+        .ratified .timeline-line-active {
+            width: 100%; /* Fill line backwards */
+        }
+
+        .ratified .date-circle {
+            border-color: var(--success);
+            color: var(--success);
+            background: #ecfdf5;
+        }
+
+        .ratified .event-card {
+            border-left-color: var(--success);
+        }
+        
+        /* Specific highlight for 4/2 Contract upon ratification */
+        .ratified .event-contract .date-circle {
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+        }
+        
+        .ratified .event-contract .status-badge {
+            background: var(--success);
+            color: white;
+        }
+
+        .ratified .requirements-section {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .ratified .req-num {
+            background: var(--success);
+            color: white;
+        }
+        
+        .ratified .retroactive-label {
+            opacity: 1;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            margin-top: 4px;
+            background: #94a3b8;
+            color: white;
+            transition: background 0.5s;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>無権代理の追認と遡及効</h1>
+        <p>「後出しじゃんけん」で最初から有効だったことになる？</p>
+    </header>
+
+    <div class="content">
+
+        <!-- Section 1: 3-Party Diagram -->
+        <div class="diagram-section">
+            <div class="section-title">Step 1: 登場人物と関係性</div>
+            <div class="people-container" id="diagram">
+                <!-- Person Y -->
+                <div class="person">
+                    <div class="icon-circle">Y</div>
+                    <div class="role">本人</div>
+                    <div class="name">追認する人</div>
+                </div>
+
+                <!-- Arrow Y -> A -->
+                <div class="arrow-line arrow-left">
+                    <div class="arrow-label" id="label-ya">代理権授与なし</div>
+                </div>
+
+                <!-- Person A -->
+                <div class="person">
+                    <div class="icon-circle">A</div>
+                    <div class="role">無権代理人</div>
+                    <div class="name">勝手にやった人</div>
+                </div>
+
+                <!-- Arrow A -> X -->
+                <div class="arrow-line arrow-right">
+                    <div class="arrow-label">契約締結</div>
+                </div>
+
+                <!-- Person X -->
+                <div class="person">
+                    <div class="icon-circle">X</div>
+                    <div class="role">相手方</div>
+                    <div class="name">皿を売った人</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Interactive Timeline -->
+        <div class="timeline-section" id="timelineContainer">
+            <div class="section-title">Step 2: 時系列の変化（遡及効）</div>
+            
+            <div class="timeline-track">
+                <div class="timeline-line"></div>
+                <div class="timeline-line-active"></div> <!-- This will animate -->
+                <div class="retroactive-label">◀ 効力がさかのぼる ◀</div>
+
+                <!-- Event 1: April 2 -->
+                <div class="event event-contract active">
+                    <div class="date-circle">4/2</div>
+                    <div class="event-card">
+                        <h3>売買契約</h3>
+                        <p>AがYの代理人として皿を購入</p>
+                        <span class="status-badge" id="contractStatus">効果不帰属（無効）</span>
+                    </div>
+                </div>
+
+                <!-- Event 2: April 10 -->
+                <div class="event event-ratify">
+                    <div class="date-circle">4/10</div>
+                    <div class="event-card">
+                        <h3>本人の追認</h3>
+                        <p>Yが「その契約認めるよ」と言う</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-area">
+                <button class="ratify-btn" onclick="ratifyAct()">
+                    Yとして追認する！
+                </button>
+                <p style="margin-top:10px; font-size:0.85rem; color:#64748b;">
+                    ※ボタンを押すとどうなるか観察してください
+                </p>
+            </div>
+        </div>
+
+        <!-- Section 3: Requirements Mapping -->
+        <div class="diagram-section">
+            <div class="section-title">Step 3: 要件事実へのあてはめ</div>
+            <p style="font-size:0.9rem; margin-bottom:12px;">追認することで、以下の3つの要件事実が揃い、契約が有効になります。</p>
+            
+            <div class="requirements-section">
+                <!-- Fact 1 -->
+                <div class="req-item">
+                    <div class="req-num">1</div>
+                    <div class="req-content">
+                        <span class="req-title">代理人との売買契約の事実</span>
+                        <span class="req-fact">「令和6年4月2日、AがXから皿を買った」</span>
+                    </div>
+                </div>
+
+                <!-- Fact 2 -->
+                <div class="req-item">
+                    <div class="req-num">2</div>
+                    <div class="req-content">
+                        <span class="req-title">顕名（けんめい）</span>
+                        <span class="req-fact">「AはYのためにすることを示した」</span>
+                    </div>
+                </div>
+
+                <!-- Fact 3 -->
+                <div class="req-item">
+                    <div class="req-num">3</div>
+                    <div class="req-content">
+                        <span class="req-title">追認の事実</span>
+                        <span class="req-fact">「令和6年4月10日、Yは追認の意思表示をした」</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function ratifyAct() {
+        const body = document.body;
+        const container = document.querySelector('.container');
+        const btn = document.querySelector('.ratify-btn');
+        const contractStatus = document.getElementById('contractStatus');
+        const labelYA = document.getElementById('label-ya');
+
+        // Add 'ratified' class to trigger all CSS animations
+        container.classList.add('ratified');
+
+        // Update Text Logic
+        btn.textContent = "追認完了（効果帰属）";
+        btn.disabled = true;
+
+        // Change the status text of the initial contract
+        // Delay slightly to match the "retroactive" animation feeling
+        setTimeout(() => {
+            contractStatus.textContent = "4/2に遡って有効！";
+            labelYA.textContent = "追認により授与と同視";
+        }, 1500); // Wait for the green line to reach the left side
+    }
+</script>
+
+</body>
+</html>
+
